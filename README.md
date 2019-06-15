@@ -49,6 +49,16 @@ If that date is missing, then the post will be identified as "Draft", with the f
 - File name will start with `draft-`, same as the original exported HTML file.
 - In the YAML front matter of Markdown, there will be a `published: false` flag.
 
+### Images
+
+Images will be linked to Medium's CDN. This tool does not download image files to the local.
+
+If you decide to remove your Medium post or account, that image might also be deleted by Medium's server forever.
+
+### Tags
+
+No tags will be imported to YAML front matter in the Markdown.
+
 ## System Requirements
 
 - Node.js 12+
