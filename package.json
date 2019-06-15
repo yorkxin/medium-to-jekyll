@@ -1,0 +1,29 @@
+{
+  "name": "medium-to-jekyll",
+  "version": "0.1.0",
+  "description": "A CLI that converts Medium exported posts to Jekyll",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chitsaou/medium-to-jekyll.git"
+  },
+  "keywords": [
+    "jekyll",
+    "medium"
+  ],
+  "author": "Yucheng Chuang",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^3.13.1",
+    "moment": "^2.24.0",
+    "turndown": "^5.0.3",
+    "turndown-plugin-gfm": "^1.0.2"
+  },
+  "bugs": {
+    "url": "https://github.com/chitsaou/medium-to-jekyll/issues"
+  },
+  "homepage": "https://github.com/chitsaou/medium-to-jekyll#readme"
+}
