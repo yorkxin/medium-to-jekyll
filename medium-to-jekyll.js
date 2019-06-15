@@ -159,6 +159,8 @@ const frontMatter = {
 if (publishedAt) {
   frontMatter['published'] = true;
   frontMatter['date'] = publishedAt.format('YYYY-MM-DD HH:mm');
+} else {
+  frontMatter['published'] = false;
 }
 
 const content = [
