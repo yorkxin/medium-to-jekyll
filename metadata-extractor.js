@@ -51,10 +51,7 @@ module.exports = class MetadataExtractor {
   }
 
   get looksLikeComment() {
-    // Looks like comment?
-    const cleanedTitle = this.title.trim().replace(/…$/, '');
-    const allContent = this.$('.section-content > .section-inner > p:first-child').text().trim();
-    return this.isPublished && allContent.startsWith(cleanedTitle);
+    return this.$('[data-field=body] h3').length === 0;
   }
 
   get images() {

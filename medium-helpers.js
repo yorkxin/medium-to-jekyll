@@ -6,10 +6,10 @@ module.exports.cleanupMediumHTML = function(html) {
   const $ = cheerio.load(html);
 
   // Remove section divider which contains an <hr>
-  $('.section-divider').remove();
+  $('.section--first > .section-divider').remove();
 
   // Remove the article title within body (Jekyll renders `title` as h1)
-  $('h3.graf.graf--h3.graf--leading.graf--title').remove();
+  $('.section--first h3.graf.graf--h3.graf--leading.graf--title').remove();
 
   // Escalate heading levels
   $('h3, h4, h5, h6').each((index, heading) => {

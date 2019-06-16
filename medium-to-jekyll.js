@@ -49,7 +49,8 @@ const content = [
   '---',
   frontMatter,
   '---',
-  markdown
+  '',
+  markdown,
 ].join("\n");
 
 fs.writeFileSync(outputFilename, content);
