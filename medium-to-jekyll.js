@@ -8,23 +8,7 @@ const TurndownService = require('turndown')
 const { gfm } = require('turndown-plugin-gfm')
 
 const MetadataExtractor = require('./metadata-extractor');
-const turndownMedium = require('./turndown-medium');
-
-const INPUT_FILENAME_FORMAT = /^(\d\d\d\d-\d\d-\d\d|draft)_/;
-
-function suggestOutputFilename(originalFilename, metadata) {
-  const matched = INPUT_FILENAME_FORMAT.exec(originalFilename);
-
-  if (matched) {
-    let slug = metadata.slug;
-    if (!slug) {
-      slug = metadata.title.replace(/([\u0000-\u002F]|[\u007b-\u00a0])+/g, '-').toLowerCase();
-    }
-    return `${matched[1]}-${slug}`
-  } else {
-    return null;
-  }
-};
+const MediumHelpers = require('./medium-helpers');
 
 const inputFilename = process.argv[2];
 const inputDir = path.dirname(inputFilename);
@@ -39,7 +23,7 @@ if (metadata.looksLikeComment) {
   process.exit(0);
 }
 
-const suggestedOutputFileBasename = suggestOutputFilename(basename, metadata);
+const suggestedOutputFileBasename = MediumHelpers.suggestOutputFilename(basename, metadata);
 
 if (!suggestedOutputFileBasename) {
   throw `Unable to identify file name. Not a correct format? '${basename}'`;
@@ -47,16 +31,18 @@ if (!suggestedOutputFileBasename) {
 
 const outputFilename = path.join(inputDir, suggestedOutputFileBasename + '.md');
 
+const cleanedUpHTML = MediumHelpers.cleanupMediumHTML(html);
+
 const turndownService = new TurndownService({
   headingStyle: 'atx',
   hr: '---',
-  bulletListMarker: '-'
+  bulletListMarker: '-',
+  codeBlockStyle: 'fenced'
 })
 
 turndownService.use(gfm);
-turndownService.use(turndownMedium);
 
-const markdown = turndownService.turndown(html);
+const markdown = turndownService.turndown(cleanedUpHTML);
 const frontMatter = yaml.safeDump(metadata.toYAMLFrontMatter());
 
 const content = [
