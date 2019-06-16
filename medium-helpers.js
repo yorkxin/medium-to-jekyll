@@ -43,6 +43,14 @@ module.exports.cleanupMediumHTML = function(html) {
     $(pre).append(code);
   });
 
+  // Merge <blockquote /> + <blockquote /> to a single <blockquote>
+  $('blockquote + blockquote').each((index, blockquote) => {
+    const previousBlockquote = blockquote.previousSibling;
+
+    $(previousBlockquote).append("<br><br>", blockquote.children);
+    $(blockquote).remove();
+  });
+
   return $('section[data-field=body]').html();
 }
 
