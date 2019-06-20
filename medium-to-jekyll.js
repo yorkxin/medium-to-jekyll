@@ -9,6 +9,7 @@ const { gfm } = require('turndown-plugin-gfm')
 
 const MetadataExtractor = require('./metadata-extractor');
 const MediumHelpers = require('./medium-helpers');
+const { figure } = require('./turndown-figure');
 
 const inputFilename = process.argv[2];
 const inputDir = path.dirname(inputFilename);
@@ -41,6 +42,7 @@ const turndownService = new TurndownService({
 })
 
 turndownService.use(gfm);
+turndownService.use(figure);
 
 const markdown = turndownService.turndown(cleanedUpHTML);
 const frontMatter = yaml.safeDump(metadata.toYAMLFrontMatter());
