@@ -17,12 +17,18 @@ const convertFigure = {
     const alt = img.alt;
     const figcaptionNode = figcaption;
     const title = img.title;
-    const altText = figcaptionNode.textContent || alt;
 
     switch (options.figureStyle) {
       case 'alt': {
         // ![figcaption text or alt](image.png title)
+        const altText = figcaptionNode.textContent || alt;
         return `![${altText}](${src} ${title})`;
+      }
+
+      case 'title': {
+        // ![alt](image.png figcaption or title)
+        const titleText = figcaptionNode.textContent || title;
+        return `![${alt}](${src} ${title})`;
       }
 
       default: {
@@ -33,7 +39,7 @@ const convertFigure = {
 
         let html = "";
         html += "<figure>\n";
-        html += `  <img src="${altText}" src="${src}" title="${title}" />\n`;
+        html += `  <img src="${alt}" src="${src}" title="${title}" />\n`;
         html += `  <figcaption>${figcaptionNode.innerHTML}</figcaption>\n`;
         html += "</figure>\n";
         return html;
