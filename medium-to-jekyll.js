@@ -24,15 +24,23 @@ if (metadata.looksLikeComment) {
   process.exit(0);
 }
 
-const suggestedOutputFileBasename = MediumHelpers.suggestOutputFilename(basename, metadata);
+const outputFileBasename = MediumHelpers.suggestOutputFilename(basename, metadata);
 
-if (!suggestedOutputFileBasename) {
+if (!outputFileBasename) {
   throw `Unable to identify file name. Not a correct format? '${basename}'`;
 }
 
-const outputFilename = path.join(inputDir, suggestedOutputFileBasename + '.md');
+const outputFilename = path.join(inputDir, outputFileBasename + '.md');
 
-const cleanedUpHTML = MediumHelpers.cleanupMediumHTML(html);
+const imageRelativeDir = path.join('images', outputFileBasename);
+const imageAbsoluteDir = path.resolve(inputDir, imageRelativeDir);
+const imageURLPrefix = path.join('/', 'images', outputFileBasename);
+
+const localAssets = new Map(metadata.images.map((url) => {
+  return MediumHelpers.remoteAssetToLocalPath(url, imageURLPrefix);
+}));
+
+const cleanedUpHTML = MediumHelpers.cleanupMediumHTML(html, { localAssets });
 
 const turndownService = new TurndownService({
   headingStyle: 'atx',
@@ -57,4 +65,18 @@ const content = [
 
 fs.writeFileSync(outputFilename, content);
 
-console.log('[Done] Exported to', outputFilename);
+console.log('[Done] Exported to:', outputFilename);
+
+if (localAssets.size > 0) {
+  let listOfImages = "";
+
+  for (let remoteURL of localAssets.keys()) {
+    const localPath = localAssets.get(remoteURL);
+    listOfImages += `${remoteURL}\n  dir=${imageAbsoluteDir}\n`;
+  }
+
+  const imageOutputFile = path.join(inputDir, outputFileBasename + '.images.txt');
+  fs.writeFileSync(imageOutputFile, listOfImages);
+  console.log('[Done] Images list:', imageOutputFile);
+}
+

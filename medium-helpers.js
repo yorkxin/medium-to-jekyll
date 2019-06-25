@@ -1,8 +1,12 @@
+const path = require('path');
 const cheerio = require('cheerio');
 
 const INPUT_FILENAME_FORMAT = /^(\d\d\d\d-\d\d-\d\d|draft)_/;
 
-module.exports.cleanupMediumHTML = function(html) {
+module.exports.cleanupMediumHTML = function(html, options = {}) {
+  /** @type {Map<String,String>|null} */
+  const localAssets = options.localAssets || null;
+
   const $ = cheerio.load(html);
 
   // Remove section divider which contains an <hr>
@@ -51,6 +55,17 @@ module.exports.cleanupMediumHTML = function(html) {
     $(blockquote).remove();
   });
 
+  if (localAssets) {
+    $('img').each((index, img) => {
+      const remoteURL = $(img).attr('src');
+      const localPath = localAssets.get(remoteURL);
+
+      if (localPath) {
+        $(img).attr('src', localPath);
+      }
+    });
+  }
+
   return $('section[data-field=body]').html();
 }
 
@@ -67,3 +82,13 @@ module.exports.suggestOutputFilename = function(originalFilename, metadata) {
     return null;
   }
 };
+
+module.exports.remoteAssetToLocalPath = function(remoteURL, prefix = '') {
+  const basename = path.basename(remoteURL);
+  const localPath = path.join(prefix, basename);
+
+  return [
+    remoteURL,
+    localPath
+  ];
+}
