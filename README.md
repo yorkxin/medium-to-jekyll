@@ -8,7 +8,44 @@ This tool is a quick hack to satisfy my own needs. **Absolutely no warranty.**
 
 Be sure to check the original posts and the converted Markdown files before you import into Jekyll.
 
-## Restrictions
+## System Requirements
+
+- Node.js 12+
+- UNIX Shell such as bash
+
+## Install
+
+```sh
+npm install
+```
+
+## Usage
+
+First, download your Medium archive from medium.com, then extract the zip file.
+
+```sh
+./medium-to-jekyll.js <path_to_archive>/posts/<your_post>.html
+```
+
+Markdown file will be saved under the same folder of the original HTML file.
+
+### To convert multiple files at once
+
+```sh
+find <path_to_archive>/posts -name '*.html' -exec ./medium-to-jekyll.js {} \;
+```
+
+Move the `*.md` files to `_posts` folder of your Jekyll project.
+
+**Be sure to download all image** to your local file system: (requires `aria2c`)
+
+```sh
+cat *.images.txt | aria2c --input-file -
+```
+
+Move the `images` folder to the root of your Jekyll project
+
+## Conventions
 
 ### Contents that will be converted
 
@@ -49,42 +86,58 @@ If that date is missing, then the post will be identified as "Draft", with the f
 - File name will start with `draft-`, same as the original exported HTML file.
 - In the YAML front matter of Markdown, there will be a `published: false` flag.
 
-### Images
+### Images (Downloads to Local)
 
-Images will be linked to Medium's CDN. This tool does not download image files to the local.
+Images will be replaced with a reference to local path relative to
+`/images/<markdown_file_name>`. This tool will collect all the download URLs
+for you. Please download them separately.
 
-If you decide to remove your Medium post or account, that image might also be deleted by Medium's server forever.
+For example, assuming that this tool converted your HTML file to
+`2019-06-20-my-awesome-article.md`
+
+```html
+<img src="https://cdn-images-1.medium.com/max/2560/1*XXXXXXXX.png" />
+```
+
+will be replaced with
+
+```html
+<img src="/images/2019-06-20-my-awesome-article/1*XXXXXXXX.png" />
+```
+
+By running this tool, in addition to `2019-06-20-my-awesome-article.md`, there
+will be a file named `2019-06-20-my-awesome-article.images.txt`, which is an
+input for [`aria2c`](https://aria2.github.io). `aria2c (1)` can be installed by
+`brew install aria2c` on macOS, or other package managers on your operating
+system.
+
+To download all images, run:
+
+```sh
+aria2c --input-file=2019-06-20-my-awesome-article.images.txt
+```
+
+The above image file will be downloaded to
+`./images/2019-06-20-my-awesome-article/1*XXXXXXXX.png`, under the same folder
+as the input HTML file.
+
+Next, copy `images` folder to the root directory of Jekyll. (Don't forget to
+copy the converted markdown files into `_posts` folder under Jekyll's root.)
+
+Your folder structure should look like this:
+
+```
+.
+├── _posts
+│   └── 2019-06-20-my-awesome-article.md
+└── images
+    └── 2019-06-20-my-awesome-article
+        └── 1*XXXXXXXX.png
+```
 
 ### Tags
 
 No tags will be imported to YAML front matter in the Markdown.
-
-## System Requirements
-
-- Node.js 12+
-- UNIX Shell such as bash
-
-## Install
-
-```sh
-npm install
-```
-
-## Usage
-
-First, download your Medium archive from medium.com, then extract the zip file.
-
-```sh
-./medium-to-jekyll.js <path_to_archive>/posts/<your_post>.html
-```
-
-Markdown file will be saved under the same folder of the original HTML file.
-
-### To convert multiple files at once
-
-```sh
-find <path_to_archive>/posts -name '*.html' -exec ./medium-to-jekyll.js {} \;
-```
 
 ## License
 
