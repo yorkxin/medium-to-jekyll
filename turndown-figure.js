@@ -39,7 +39,7 @@ const convertFigure = {
 
         let html = "";
         html += "<figure>\n";
-        html += `  <img src="${alt}" src="${src}" title="${title}" />\n`;
+        html += `  <img alt="${alt}" src="${src}" title="${title}" />\n`;
         html += `  <figcaption>${figcaptionNode.innerHTML}</figcaption>\n`;
         html += "</figure>\n";
         return html;
