@@ -1,11 +1,13 @@
 const path = require('path');
 const cheerio = require('cheerio');
+const { highlightAuto } = require('highlight.js');
 
 const INPUT_FILENAME_FORMAT = /^(\d\d\d\d-\d\d-\d\d|draft)_/;
 
 module.exports.cleanupMediumHTML = function(html, options = {}) {
   /** @type {Map<String,String>|null} */
   const localAssets = options.localAssets || null;
+  const languageSubset = options.languageSubset || [];
 
   const $ = cheerio.load(html);
 
@@ -46,6 +48,17 @@ module.exports.cleanupMediumHTML = function(html, options = {}) {
     $(pre.children).remove();
     $(pre).append(code);
   });
+
+  // Detect programming language by dry-run Highlight.js
+  $('pre > code').each((index, code) => {
+    const highlighted = highlightAuto($(code).text(), languageSubset);
+
+    console.debug('detected language:', highlighted.language)
+
+    if (highlighted.language) {
+      $(code).addClass(`language-${highlighted.language}`);
+    }
+  })
 
   // Merge <blockquote /> + <blockquote /> to a single <blockquote>
   $('blockquote + blockquote').each((index, blockquote) => {

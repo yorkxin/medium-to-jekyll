@@ -40,7 +40,12 @@ const localAssets = new Map(metadata.images.map((url) => {
   return MediumHelpers.remoteAssetToLocalPath(url, imageURLPrefix);
 }));
 
-const cleanedUpHTML = MediumHelpers.cleanupMediumHTML(html, { localAssets });
+// TODO: make this a CLI option
+const languageSubset = [
+  'js', 'css', 'rb', 'sh', 'json', 'html', 'dockerfile'
+];
+
+const cleanedUpHTML = MediumHelpers.cleanupMediumHTML(html, { localAssets, languageSubset });
 
 const turndownService = new TurndownService({
   headingStyle: 'atx',
