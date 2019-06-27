@@ -1,22 +1,18 @@
 {
   "name": "medium-to-jekyll",
-  "version": "0.1.0",
   "description": "A CLI that converts Medium exported posts to Jekyll",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/chitsaou/medium-to-jekyll.git"
-  },
-  "keywords": [
-    "jekyll",
-    "medium"
-  ],
+  "version": "0.1.0",
   "author": "Yucheng Chuang",
-  "license": "MIT",
+  "bin": {
+    "medium-to-jekyll": "./bin/run"
+  },
+  "bugs": {
+    "url": "https://github.com/chitsaou/medium-to-jekyll/issues"
+  },
   "dependencies": {
+    "@oclif/command": "^1.5.15",
+    "@oclif/config": "^1.13.0",
+    "@oclif/plugin-help": "^2.2.0",
     "cheerio": "^1.0.0-rc.3",
     "highlight.js": "^9.15.8",
     "js-yaml": "^3.13.1",
@@ -25,8 +21,34 @@
     "turndown": "^5.0.3",
     "turndown-plugin-gfm": "^1.0.2"
   },
-  "bugs": {
-    "url": "https://github.com/chitsaou/medium-to-jekyll/issues"
+  "devDependencies": {
+    "@oclif/test": "^1.2.4",
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "eslint-config-oclif": "^3.1.0",
+    "mocha": "^5.2.0",
+    "nyc": "^13.3.0"
   },
-  "homepage": "https://github.com/chitsaou/medium-to-jekyll#readme"
+  "engines": {
+    "node": ">=8.0.0"
+  },
+  "files": [
+    "/bin",
+    "/src"
+  ],
+  "homepage": "https://github.com/chitsaou/medium-to-jekyll#readme",
+  "keywords": [
+    "jekyll",
+    "medium"
+  ],
+  "license": "MIT",
+  "main": "src/index.js",
+  "oclif": {
+    "bin": "medium-to-jekyll"
+  },
+  "repository": "git+https://github.com/chitsaou/medium-to-jekyll.git",
+  "scripts": {
+    "posttest": "eslint .",
+    "test": "nyc mocha --forbid-only \"test/**/*.test.js\""
+  }
 }
