@@ -1,14 +1,6 @@
-const path = require('path')
 const cheerio = require('cheerio')
-const {highlightAuto} = require('highlight.js')
 
-const INPUT_FILENAME_FORMAT = /^(\d\d\d\d-\d\d-\d\d|draft)_/
-
-module.exports.cleanupMediumHTML = function (html, options = {}) {
-  /** @type {Map<String,String>|null} */
-  const localAssets = options.localAssets || null
-  const languageSubset = options.languageSubset || []
-
+module.exports.cleanupHTML = html => {
   const $ = cheerio.load(html)
 
   // Remove section divider which contains an <hr>
@@ -49,15 +41,6 @@ module.exports.cleanupMediumHTML = function (html, options = {}) {
     $(pre).append(code)
   })
 
-  // Detect programming language by dry-run Highlight.js
-  $('pre > code').each((index, code) => {
-    const highlighted = highlightAuto($(code).text(), languageSubset)
-
-    if (highlighted.language) {
-      $(code).addClass(`language-${highlighted.language}`)
-    }
-  })
-
   // Merge <blockquote /> + <blockquote /> to a single <blockquote>
   $('blockquote + blockquote').each((index, blockquote) => {
     const previousBlockquote = blockquote.previousSibling
@@ -66,41 +49,6 @@ module.exports.cleanupMediumHTML = function (html, options = {}) {
     $(blockquote).remove()
   })
 
-  if (localAssets) {
-    $('img').each((index, img) => {
-      const remoteURL = $(img).attr('src')
-      const localPath = localAssets.get(remoteURL)
-
-      if (localPath) {
-        $(img).attr('src', localPath)
-      }
-    })
-  }
-
   return $('section[data-field=body]').html()
 }
 
-module.exports.suggestOutputFilename = function (originalFilename, metadata) {
-  const matched = INPUT_FILENAME_FORMAT.exec(originalFilename)
-
-  if (matched) {
-    let slug = metadata.slug
-    if (!slug) {
-      /* eslint-disable no-control-regex */
-      slug = metadata.title.replace(/([\u0000-\u002F]|[\u007b-\u00a0])+/g, '-').toLowerCase()
-      /* eslint-enable no-control-regex */
-    }
-    return `${matched[1]}-${slug}`
-  }
-  return null
-}
-
-module.exports.remoteAssetToLocalPath = function (remoteURL, prefix = '') {
-  const basename = path.basename(remoteURL)
-  const localPath = path.join(prefix, basename)
-
-  return [
-    remoteURL,
-    localPath,
-  ]
-}
