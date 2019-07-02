@@ -22,21 +22,24 @@ class MediumToJekyllCommand extends Command {
 
     this.debug(this.converterOptions)
 
-    const tasks = new Listr({concurrent: true})
-    const downloadTasks = new Listr({concurrent: false})
+    const context = {}
 
-    for (let filename of argv) {
+    const {convertResults} = await this.runConverterTasks(argv, context)
+    this.log('Downloading files...')
+    await this.runDownloadAssets(convertResults)
+  }
+
+  async runConverterTasks(filenames) {
+    const tasks = new Listr({concurrent: true})
+
+    for (let filename of filenames) {
       tasks.add({
         title: `Convert: ${path.basename(filename)}`,
         task: async (ctx, task) => {
-          let assets = []
-          let downloadDir = null
+          let result = null
 
           try {
-            const result = await this.convertFile(filename)
-            task.title = `Converted to ~/${path.relative(os.homedir(), result.outputFilename)}`
-            assets = result.assets
-            downloadDir = result.downloadDir
+            result = await this.convertFile(filename)
           } catch (error) {
             if (error instanceof NotAPostError) {
               task.skip('Skip, Not a post')
@@ -46,40 +49,48 @@ class MediumToJekyllCommand extends Command {
             throw error
           }
 
-          if (assets.length === 0) {
-            return
-          }
+          task.title = `Converted to ~/${path.relative(os.homedir(), result.outputFilename)}`
 
-          downloadTasks.add({
-            title: `mkdir -p ~/${path.relative(os.homedir(), downloadDir)}`,
-            skip: () => {
-              if (fs.existsSync(downloadDir)) {
-                return 'Entry already exists'
-              }
-            },
-            task: async () => fs.promises.mkdir(downloadDir, {recursive: true}),
-          })
-
-          for (let url of assets) {
-            const localPath = this.determineDownloadPath(downloadDir, url)
-
-            downloadTasks.add({
-              title: `Download ${url} ...`,
-              task: async (ctx, task) => {
-                await this.downloadFile(url, localPath)
-                task.title = `Downloaded to ~/${path.relative(os.homedir(), localPath)}`
-              },
-            })
-          }
+          ctx.convertResults.push(result)
         },
       })
     }
 
-    await tasks.run()
+    return tasks.run({convertResults: []})
+  }
 
-    this.log('Downloading files...')
+  async runDownloadAssets(convertResults) {
+    const downloadTasks = new Listr({concurrent: false})
 
-    await downloadTasks.run()
+    for (const {downloadDir, assets} of convertResults) {
+      if (assets.length === 0) {
+        continue
+      }
+
+      downloadTasks.add({
+        title: `mkdir -p ~/${path.relative(os.homedir(), downloadDir)}`,
+        skip: () => {
+          if (fs.existsSync(downloadDir)) {
+            return 'Entry already exists'
+          }
+        },
+        task: async () => fs.promises.mkdir(downloadDir, {recursive: true}),
+      })
+
+      for (let url of assets) {
+        const localPath = this.determineDownloadPath(downloadDir, url)
+
+        downloadTasks.add({
+          title: `Download ${url} ...`,
+          task: async (ctx, task) => {
+            await this.downloadFile(url, localPath)
+            task.title = `Downloaded to ~/${path.relative(os.homedir(), localPath)}`
+          },
+        })
+      }
+    }
+
+    return downloadTasks.run()
   }
 
   async convertFile(filename) {
