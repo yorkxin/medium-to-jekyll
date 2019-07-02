@@ -30,7 +30,6 @@ module.exports.convertMediumHTML = async (
 
   return {
     content,
-    metadata,
     assets,
   }
 }

@@ -43,7 +43,7 @@ module.exports = class MediumMetadata {
       this.slug = null
     }
 
-    this.looksLikeComment = ($('[data-field=body] h3').length === 0)
+    this.looksLikePost = ($('[data-field=body] h3').length > 0)
   }
 
   toYAMLFrontMatter() {

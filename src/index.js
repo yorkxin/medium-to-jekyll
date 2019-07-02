@@ -1,11 +1,12 @@
 const path = require('path')
 const fs = require('fs')
-const rp = require('request-promise')
-const fsPromises = require('fs').promises
 const {Command, flags} = require('@oclif/command')
+const {downloadAssets} = require('./download-assets')
 const MediumMetadata = require('./scrapers/metadata')
 const {getSupportedLanguages} = require('./pipeline/detect-code-block-languages')
 const {convertMediumHTML} = require('./pipeline/convert-medium-html')
+
+class NotAPostError extends Error {}
 
 class MediumToJekyllCommand extends Command {
   async run() {
@@ -21,21 +22,40 @@ class MediumToJekyllCommand extends Command {
 
     for (let filename of argv) {
       this.debug('file', filename)
-      // need sequential
-      // eslint-disable-next-line no-await-in-loop
-      await this.convertFile(filename)
+
+      try {
+        // need sequential
+        // eslint-disable-next-line no-await-in-loop
+        const {outputFilename, downloadResults} = await this.convertFile(filename)
+        this.log('[Done] Converted to', outputFilename)
+
+        downloadResults.forEach(result => {
+          if (result.status === 'ok') {
+            this.log('>> [Asset] Downloaded to', result.localPath)
+          } else {
+            this.error('>> [Asset] Failed to download', result.url)
+          }
+        })
+      } catch (error) {
+        if (error instanceof NotAPostError) {
+          this.log("Skip: Doesn't look like a post")
+          continue
+        }
+
+        throw error
+      }
     }
   }
 
   async convertFile(filename) {
     const dirname = path.dirname(filename)
-    const html = await fsPromises.readFile(filename, 'utf-8')
+    const html = await fs.promises.readFile(filename, 'utf-8')
 
     const metadata = new MediumMetadata(html)
+    const outputBasename = metadata.suggestedOutputBasename()
 
-    if (metadata.looksLikeComment) {
-      this.log('Skip: Looks like a comment.')
-      return null
+    if (!metadata.looksLikePost) {
+      throw new NotAPostError()
     }
 
     const result = await convertMediumHTML(html, metadata, {
@@ -44,73 +64,27 @@ class MediumToJekyllCommand extends Command {
       imageURLPrefix: this.converterOptions.imageURLPrefix,
     })
 
-    this.debug('metadata:', result.metadata)
-    this.debug('assets:', result.assets)
-
-    const outputBasename = result.metadata.suggestedOutputBasename()
+    // Write Markdown to file
     const outputFilename = path.resolve(dirname, outputBasename + '.md')
-    await fsPromises.writeFile(outputFilename, result.content, 'utf-8')
+    await fs.promises.writeFile(outputFilename, result.content, 'utf-8')
 
-    this.debug('wrote:', outputFilename)
+    let downloadResults = []
 
-    if (result.assets.length > 0) {
-      let downloadDir
-
-      if (path.isAbsolute(this.converterOptions.imageDir)) {
-        downloadDir = path.resolve(this.converterOptions.imageDir, outputBasename)
-      } else {
-        downloadDir = path.resolve(dirname, this.converterOptions.imageDir, outputBasename)
-      }
-
-      const downloadResults = await this.downloadAssets(result.assets, downloadDir)
-
-      this.debug('Download Results:', downloadResults)
-
-      downloadResults.forEach(result => {
-        if (result.status === 'ok') {
-          this.log('[Download Succeeded] Asset downloaded to', result.localPath)
-        } else {
-          this.error('[Download Failed] Could not download', result.url)
-        }
-      })
+    // Download assets
+    if (result.assets.length !== 0) {
+      const downloadDir = this.determineDownloadDir(outputBasename, dirname)
+      downloadResults = await downloadAssets(result.assets, downloadDir)
     }
 
-    this.log('[Done] Converted to', outputFilename)
+    return {outputFilename, downloadResults}
   }
 
-  /**
-   *
-   * @param {string[]} assets array of URLs to download
-   * @param {string} downloadDir local directory
-   */
-  async downloadAssets(assets, downloadDir) {
-    if (!fs.existsSync(downloadDir)) {
-      await fsPromises.mkdir(downloadDir, {recursive: true})
-      this.log('> mkdir', downloadDir)
+  determineDownloadDir(outputBasename, dirname) {
+    if (path.isAbsolute(this.converterOptions.imageDir)) {
+      return path.resolve(this.converterOptions.imageDir, outputBasename)
     }
 
-    return Promise.all(assets.map(async url => {
-      const localPath = path.resolve(downloadDir, path.basename(url))
-
-      try {
-        await this.downloadFile(url, localPath)
-        return {status: 'ok', url, localPath}
-      } catch (error) {
-        return {status: 'error', url, localPath, error: error}
-      }
-    }))
-  }
-
-  /**
-   *
-   * @param {string} url remote URL to download
-   * @param {string} localPath local file path to save to
-   */
-  async downloadFile(url, localPath) {
-    const response = await rp.get({url, encoding: null})
-    const buffer = Buffer.from(response, 'utf8')
-    await fsPromises.writeFile(localPath, buffer)
-    return localPath
+    return path.resolve(dirname, this.converterOptions.imageDir, outputBasename)
   }
 
   flagsToConverterOptions(flags) {
