@@ -24,26 +24,189 @@ npm install
 First, download your Medium archive from medium.com, then extract the zip file.
 
 ```sh
-./medium-to-jekyll.js <path_to_archive>/posts/<your_post>.html
+./bin/run <path_to_archive>/posts/*.html
 ```
 
 Markdown file will be saved under the same folder of the original HTML file.
 
-### To convert multiple files at once
+After the conversion:
 
-```sh
-find <path_to_archive>/posts -name '*.html' -exec ./medium-to-jekyll.js {} \;
+- Move the Markdown files to `_posts` of your Jekyll project
+- Move the `images` folder to the root of your Jekyll project
+
+Your Jekyll project folder structure should look like this:
+
+```
+.
+├── _posts
+│   └── 2019-06-20-my-awesome-article.md
+└── images
+    └── 2019-06-20-my-awesome-article
+        └── 1*XXXXXXXX.png
 ```
 
-Move the `*.md` files to `_posts` folder of your Jekyll project.
+## Features
 
-**Be sure to download all image** to your local file system: (requires `aria2c`)
+### Image URL Rewriting
 
-```sh
-cat *.images.txt | aria2c --input-file -
+Images will be replaced with a reference to local path relative to
+`/images/<markdown_file_name>`. This tool will collect all the download URLs
+for you. Please download them separately.
+
+For example, assuming that this tool converted your HTML file to
+`2019-06-20-my-awesome-article.md`
+
+```html
+<img src="https://cdn-images-1.medium.com/max/2560/1*XXXXXXXX.png" />
 ```
 
-Move the `images` folder to the root of your Jekyll project
+will be replaced with
+
+```html
+<img src="/images/2019-06-20-my-awesome-article/1*XXXXXXXX.png" />
+```
+
+By running this tool, in addition to `2019-06-20-my-awesome-article.md`, the
+above image files will be downloaded to
+`./images/2019-06-20-my-awesome-article/1*XXXXXXXX.png`, under the same folder
+as the input HTML file.
+
+```
+  --image-dir=image-dir
+      [default: images] Image Directory prefix
+
+  --image-url-prefix=image-url-prefix
+      [default: /images] Image URL prefix
+```
+
+### Auto Programming Language Detection
+
+Detects the programming language for the contents of fenced code block.
+
+**Caveats**: In some cases it may detect the wrong language. Be sure to review
+the Markdown result.
+
+For example:
+
+```html
+<pre><code>
+const foo = { bar: () => 'baz };
+</code></pre>
+```
+
+May be detected as JavaScript, and generate:
+
+    ```js
+    const foo = { bar: () => 'baz };
+    ```
+
+Default language set is `js,css,html,py,rb,java,sql,go`
+
+Language detection is done by
+[Highlight.js](https://github.com/highlightjs/highlight.js).
+See `./bin/run --help` for full list of languages.
+
+
+```
+  --[no-]detect-languages
+      Disable programming language detection
+
+  --languages=...
+  [default: js,css,html,py,rb,java,sql,go] Programming languages to detect in code block
+```
+
+### Markdown Conversion
+
+This tool uses [Turndown](https://github.com/domchristie/turndown) as the
+Markdown converter.
+
+The following Turndown options are supported:
+
+```
+  --md-code=fenced|indented
+      [default: fenced] Markdown codeBlockStyle
+
+  --md-em=underscore|asterisk
+      [default: _] Markdown emDelimiter
+
+  --md-fence=backtick|tilde
+      [default: ```] Markdown fence
+
+  --md-hh=atx|settext
+      [default: atx] Markdown headingStyle.
+
+  --md-hr=asterisks|dashes|underscores
+      [default: ---] Markdown hr
+
+  --md-link=inlined|referenced
+      [default: inlined] Markdown linkStyle
+
+  --md-ref=full|collapsed|shortcut
+      [default: full] Markdown linkReferenceStyle
+
+  --md-strong=asterisk|underscore
+      [default: **] Markdown strongDelimiter
+
+  --md-ul=dash|plus|asterisk
+      [default: -] Markdown bulletListMarker
+```
+
+### Figure Handling
+
+`<figure>` will by default be converted as HTML tags, to avoid missing
+information on the resulting Markdown file.
+
+Unfortunately, Markdown does not have a built-in `figure` syntax.
+
+Aspect ratio won't be attained.
+
+This tool provides the following modes:
+
+- `no` = Convert to `<figure>`
+- `alt` = Convert to image tag, embed `<figcaption>` text into `alt`
+- `title` = Convert to image tag, embed `<figcaption>` text into `title`
+
+Examples:
+
+For the following tag in Medium HTML:
+
+```html
+<figure name="81a2" id="81a2" class="graf graf--figure graf-after--p">
+  <div class="aspectRatioPlaceholder is-locked" style="max-width: 700px; max-height: 721px;">
+    <div class="aspectRatioPlaceholder-fill" style="padding-bottom: 103%;"></div>
+    <img class="graf-image" data-image-id="1*xxxxxxxx.png" data-width="1582" data-height="1630" data-is-featured="true" src="https://cdn-images-1.medium.com/max/800/1*xxxxxxxx.png">
+  </div>
+  <figcaption class="imageCaption">The quick brown fox jumps over the lazy dog</figcaption>
+</figure>
+```
+
+Setting to `no`:
+
+```md
+<figure>
+  <img alt="" src="/images/1*xxxxxxxx.png" title="" />
+  <figcaption>The quick brown fox jumps over the lazy dog</figcaption>
+</figure>
+```
+
+Setting to `alt`:
+
+```md
+![The quick brown fox jumps over the lazy dog](/images/1*xxxxxxxx.png)
+```
+
+Setting to `title`:
+
+```md
+![](/images/1*xxxxxxxx.png The quick brown fox jumps over the lazy dog)
+```
+
+CLI option:
+
+```
+  --md-figure=alt|title|no
+      [default: no] Markdown figureStyle. "no" = use <figure> tag
+```
 
 ## Conventions
 
@@ -85,55 +248,6 @@ If that date is missing, then the post will be identified as "Draft", with the f
 
 - File name will start with `draft-`, same as the original exported HTML file.
 - In the YAML front matter of Markdown, there will be a `published: false` flag.
-
-### Images (Downloads to Local)
-
-Images will be replaced with a reference to local path relative to
-`/images/<markdown_file_name>`. This tool will collect all the download URLs
-for you. Please download them separately.
-
-For example, assuming that this tool converted your HTML file to
-`2019-06-20-my-awesome-article.md`
-
-```html
-<img src="https://cdn-images-1.medium.com/max/2560/1*XXXXXXXX.png" />
-```
-
-will be replaced with
-
-```html
-<img src="/images/2019-06-20-my-awesome-article/1*XXXXXXXX.png" />
-```
-
-By running this tool, in addition to `2019-06-20-my-awesome-article.md`, there
-will be a file named `2019-06-20-my-awesome-article.images.txt`, which is an
-input for [`aria2c`](https://aria2.github.io). `aria2c (1)` can be installed by
-`brew install aria2c` on macOS, or other package managers on your operating
-system.
-
-To download all images, run:
-
-```sh
-aria2c --input-file=2019-06-20-my-awesome-article.images.txt
-```
-
-The above image file will be downloaded to
-`./images/2019-06-20-my-awesome-article/1*XXXXXXXX.png`, under the same folder
-as the input HTML file.
-
-Next, copy `images` folder to the root directory of Jekyll. (Don't forget to
-copy the converted markdown files into `_posts` folder under Jekyll's root.)
-
-Your folder structure should look like this:
-
-```
-.
-├── _posts
-│   └── 2019-06-20-my-awesome-article.md
-└── images
-    └── 2019-06-20-my-awesome-article
-        └── 1*XXXXXXXX.png
-```
 
 ### Tags
 
