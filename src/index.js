@@ -34,6 +34,7 @@ class MediumToJekyllCommand extends Command {
 
           try {
             const result = await this.convertFile(filename)
+            task.title = `Converted to ~/${path.relative(os.homedir(), result.outputFilename)}`
             assets = result.assets
             downloadDir = result.downloadDir
           } catch (error) {
@@ -51,7 +52,11 @@ class MediumToJekyllCommand extends Command {
 
           downloadTasks.add({
             title: `mkdir -p ~/${path.relative(os.homedir(), downloadDir)}`,
-            skip: () => fs.existsSync(downloadDir),
+            skip: () => {
+              if (fs.existsSync(downloadDir)) {
+                return 'Entry already exists'
+              }
+            },
             task: async () => fs.promises.mkdir(downloadDir, {recursive: true}),
           })
 
@@ -59,9 +64,11 @@ class MediumToJekyllCommand extends Command {
             const localPath = this.determineDownloadPath(downloadDir, url)
 
             downloadTasks.add({
-              title: `Download to ~/${path.relative(os.homedir(), localPath)}`,
-              task: async () => this.downloadFile(url, localPath),
-              output: `Downloading ${url} ...`,
+              title: `Download ${url} ...`,
+              task: async (ctx, task) => {
+                await this.downloadFile(url, localPath)
+                task.title = `Downloaded to ~/${path.relative(os.homedir(), localPath)}`
+              },
             })
           }
         },
