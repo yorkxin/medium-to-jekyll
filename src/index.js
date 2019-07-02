@@ -1,7 +1,9 @@
 const path = require('path')
 const fs = require('fs')
+const os = require('os')
 const {Command, flags} = require('@oclif/command')
-const {downloadAssets} = require('./download-assets')
+const Listr = require('listr')
+const rp = require('request-promise')
 const MediumMetadata = require('./scrapers/metadata')
 const {getSupportedLanguages} = require('./pipeline/detect-code-block-languages')
 const {convertMediumHTML} = require('./pipeline/convert-medium-html')
@@ -20,39 +22,76 @@ class MediumToJekyllCommand extends Command {
 
     this.debug(this.converterOptions)
 
+    const tasks = new Listr({concurrent: true})
+    const downloadTasks = new Listr({concurrent: false})
+
     for (let filename of argv) {
-      this.debug('file', filename)
+      tasks.add({
+        title: `Convert: ${path.basename(filename)}`,
+        task: async (ctx, task) => {
+          let assets = []
+          let downloadDir = null
 
-      try {
-        // need sequential
-        // eslint-disable-next-line no-await-in-loop
-        const {outputFilename, downloadResults} = await this.convertFile(filename)
-        this.log('[Done] Converted to', outputFilename)
+          try {
+            const result = await this.convertFile(filename)
+            assets = result.assets
+            downloadDir = result.downloadDir
+          } catch (error) {
+            if (error instanceof NotAPostError) {
+              task.skip('Skip, Not a post')
+              return
+            }
 
-        downloadResults.forEach(result => {
-          if (result.status === 'ok') {
-            this.log('>> [Asset] Downloaded to', result.localPath)
-          } else {
-            this.error('>> [Asset] Failed to download', result.url)
+            throw error
           }
-        })
-      } catch (error) {
-        if (error instanceof NotAPostError) {
-          this.log("Skip: Doesn't look like a post")
-          continue
-        }
 
-        throw error
-      }
+          if (assets.length === 0) {
+            return
+          }
+
+          downloadTasks.add({
+            title: `mkdir -p ~/${path.relative(os.homedir(), downloadDir)}`,
+            skip: () => fs.existsSync(downloadDir),
+            task: async () => fs.promises.mkdir(downloadDir, {recursive: true}),
+          })
+
+          for (let url of assets) {
+            const localPath = this.determineDownloadPath(downloadDir, url)
+
+            downloadTasks.add({
+              title: `Download to ~/${path.relative(os.homedir(), localPath)}`,
+              task: async () => this.downloadFile(url, localPath),
+              output: `Downloading ${url} ...`,
+            })
+          }
+        },
+      })
     }
+
+    await tasks.run()
+
+    this.log('Downloading files...')
+
+    await downloadTasks.run()
   }
 
   async convertFile(filename) {
     const dirname = path.dirname(filename)
     const html = await fs.promises.readFile(filename, 'utf-8')
 
-    const metadata = new MediumMetadata(html)
+    const {metadata, assets, content} = await this.convertHTMLToMarkdown(html)
     const outputBasename = metadata.suggestedOutputBasename()
+
+    // Write Markdown to file
+    const outputFilename = path.resolve(dirname, outputBasename + '.md')
+    await fs.promises.writeFile(outputFilename, content, 'utf-8')
+
+    const downloadDir = this.determineDownloadDir(outputBasename, dirname)
+    return {outputFilename, assets, downloadDir}
+  }
+
+  async convertHTMLToMarkdown(html) {
+    const metadata = new MediumMetadata(html)
 
     if (!metadata.looksLikePost) {
       throw new NotAPostError()
@@ -64,19 +103,7 @@ class MediumToJekyllCommand extends Command {
       imageURLPrefix: this.converterOptions.imageURLPrefix,
     })
 
-    // Write Markdown to file
-    const outputFilename = path.resolve(dirname, outputBasename + '.md')
-    await fs.promises.writeFile(outputFilename, result.content, 'utf-8')
-
-    let downloadResults = []
-
-    // Download assets
-    if (result.assets.length !== 0) {
-      const downloadDir = this.determineDownloadDir(outputBasename, dirname)
-      downloadResults = await downloadAssets(result.assets, downloadDir)
-    }
-
-    return {outputFilename, downloadResults}
+    return {metadata, ...result}
   }
 
   determineDownloadDir(outputBasename, dirname) {
@@ -85,6 +112,21 @@ class MediumToJekyllCommand extends Command {
     }
 
     return path.resolve(dirname, this.converterOptions.imageDir, outputBasename)
+  }
+
+  determineDownloadPath(downloadDir, url) {
+    return path.resolve(downloadDir, path.basename(url))
+  }
+
+  /**
+   *
+   * @param {string} url remote URL to download
+   * @param {string} localPath local path to file
+   */
+  async downloadFile(url, localPath) {
+    const response = await rp.get({url, encoding: null})
+    const buffer = Buffer.from(response, 'utf8')
+    return fs.promises.writeFile(localPath, buffer)
   }
 
   flagsToConverterOptions(flags) {
