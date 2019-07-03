@@ -212,28 +212,14 @@ MediumToJekyllCommand.flags = {
     description: 'Markdown headingStyle.',
   }),
   'md-hr': flags.string({
-    options: ['asterisks', 'dashes', 'underscores'],
+    options: ['* * *', '---', '___'],
     default: '---',
     description: 'Markdown hr',
-    parse: input => {
-      return {
-        asterisks: '* * *',
-        dashes: '---',
-        underscores: '___',
-      }[input]
-    },
   }),
   'md-ul': flags.string({
-    options: ['dash', 'plus', 'asterisk'],
+    options: ['-', '+', '*'],
     default: '-',
     description: 'Markdown bulletListMarker',
-    parse: input => {
-      return {
-        dash: '-',
-        plus: '+',
-        asterisk: '*',
-      }[input]
-    },
   }),
   'md-code': flags.string({
     options: ['fenced', 'indented'],
@@ -241,37 +227,19 @@ MediumToJekyllCommand.flags = {
     description: 'Markdown codeBlockStyle',
   }),
   'md-fence': flags.string({
-    options: ['backtick', 'tilde'],
+    options: ['```', '~~~'],
     default: '```',
     description: 'Markdown fence',
-    parse: input => {
-      return {
-        backtick: '```',
-        tilde: '~~~',
-      }[input]
-    },
   }),
   'md-em': flags.string({
-    options: ['underscore', 'asterisk'],
+    options: ['_', '*'],
     default: '_',
     description: 'Markdown emDelimiter',
-    parse: input => {
-      return {
-        underscore: '_',
-        asterisk: '*',
-      }[input]
-    },
   }),
   'md-strong': flags.string({
-    options: ['asterisk', 'underscore'],
+    options: ['**', '__'],
     default: '**',
     description: 'Markdown strongDelimiter',
-    parse: input => {
-      return {
-        asterisk: '**',
-        underscore: '__',
-      }[input]
-    },
   }),
   'md-link': flags.string({
     options: ['inlined', 'referenced'],
