@@ -126,16 +126,16 @@ The following Turndown options are supported:
   --md-code=fenced|indented
       [default: fenced] Markdown codeBlockStyle
 
-  --md-em=underscore|asterisk
+  --md-em=_|*
       [default: _] Markdown emDelimiter
 
-  --md-fence=backtick|tilde
+  --md-fence=```|~~~
       [default: ```] Markdown fence
 
   --md-hh=atx|settext
       [default: atx] Markdown headingStyle.
 
-  --md-hr=asterisks|dashes|underscores
+  --md-hr=* * *|---|___
       [default: ---] Markdown hr
 
   --md-link=inlined|referenced
@@ -144,11 +144,10 @@ The following Turndown options are supported:
   --md-ref=full|collapsed|shortcut
       [default: full] Markdown linkReferenceStyle
 
-  --md-strong=asterisk|underscore
+  --md-strong=**|__
       [default: **] Markdown strongDelimiter
 
-  --md-ul=dash|plus|asterisk
-      [default: -] Markdown bulletListMarker
+  --md-ul=-|+|*
 ```
 
 ### Figure Handling
