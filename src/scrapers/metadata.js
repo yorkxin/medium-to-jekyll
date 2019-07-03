@@ -27,7 +27,7 @@ module.exports = class MediumMetadata {
 
     if (this.publishedAtRaw) {
       this.isPublished = true
-      this.localPublishedAt = moment.utc(this.publishedAt).local()
+      this.localPublishedAt = moment.utc(this.publishedAtRaw).local()
     } else {
       this.isPublished = false
       this.localPublishedAt = null
