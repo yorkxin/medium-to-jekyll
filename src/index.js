@@ -118,7 +118,7 @@ class MediumToJekyllCommand extends Command {
     const result = await convertMediumHTML(html, metadata, {
       languages: this.converterOptions.languages,
       turndownOptions: this.converterOptions.turndown,
-      imageURLPrefix: this.converterOptions.imageURLPrefix,
+      imageURLPrefix: path.join(this.converterOptions.imageURLPrefix, metadata.suggestedOutputBasename()),
     })
 
     return {metadata, ...result}
