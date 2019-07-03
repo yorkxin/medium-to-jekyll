@@ -169,8 +169,11 @@ class MediumToJekyllCommand extends Command {
 }
 
 MediumToJekyllCommand.description = `Converts Medium Post(s) into Jekyll markdown format.
-...
-Extra documentation goes here
+To convert:
+
+1. Download your Medium export from https://medium.com/me/settings -> Download your information
+2. Extract the zip archive
+3. Run ./bin/run /path/to/medium-export/posts/*.html
 `
 
 MediumToJekyllCommand.flags = {
